@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+option go_package = "dist_scheduler/proto/;primeser";
+
+service PrimeService {
+  rpc ListPrimes(InputNum) returns (OutputList); 
+  rpc CheckPrime(InputNum) returns (OutputResult);
+}
+
+message InputNum{
+  int32 Num = 1;
+}
+
+message OutputList{
+  repeated int32 PrimesList = 1;
+}
+
+message OutputResult{
+  string isPrime = 1;
+}

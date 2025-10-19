@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  leader:
+    build:
+      context: .
+      dockerfile: Dockerfile.leader
+    ports:
+      - "50051:50051"
+    networks:
+      - scheduler-net
+
+  worker1:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      - WORKER_ID=worker1
+      - PORT=50052
+    networks:
+      - scheduler-net
+    depends_on:
+      - leader
+  worker2:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      - WORKER_ID=worker2
+      - PORT=50053
+    networks:
+      - scheduler-net
+    depends_on:
+      - leader
+  worker3:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      - WORKER_ID=worker3
+      - PORT=50054
+    networks:
+      - scheduler-net
+    depends_on:
+      - leader
+
+networks:
+  scheduler-net:
+    driver: bridge

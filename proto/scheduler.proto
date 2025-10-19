@@ -1,0 +1,32 @@
+syntax = "proto3";
+option go_package = "./proto;pb";
+
+// client -> leader rpc calls
+
+service Scheduler{
+  rpc ListPrimes(PrimeReq) returns (PrimeRes);
+}
+
+message PrimeReq{
+  int32 Num = 1;
+} 
+
+message PrimeRes{
+  repeated int32 PrimeList = 1;
+  int32 ProcessedBy = 2;
+}
+
+// leader -> worker rpc calls
+
+service Worker{
+  rpc ListPrimes(PrimeReq) returns (PrimeRes);
+  rpc Heartbeat(HeartbeatReq) returns (HeartbeatRes);
+}
+
+message HeartbeatReq{
+  int32 WorkerID  = 1;
+}
+
+message HeartbeatRes{
+  bool IsAlive = 1;
+}

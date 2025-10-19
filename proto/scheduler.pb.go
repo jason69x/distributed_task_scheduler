@@ -68,7 +68,7 @@ func (x *PrimeReq) GetNum() int32 {
 type PrimeRes struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PrimeList     []int32                `protobuf:"varint,1,rep,packed,name=PrimeList,proto3" json:"PrimeList,omitempty"`
-	ProcessedBy   int32                  `protobuf:"varint,2,opt,name=ProcessedBy,proto3" json:"ProcessedBy,omitempty"`
+	ProcessedBy   string                 `protobuf:"bytes,2,opt,name=ProcessedBy,proto3" json:"ProcessedBy,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -110,11 +110,11 @@ func (x *PrimeRes) GetPrimeList() []int32 {
 	return nil
 }
 
-func (x *PrimeRes) GetProcessedBy() int32 {
+func (x *PrimeRes) GetProcessedBy() string {
 	if x != nil {
 		return x.ProcessedBy
 	}
-	return 0
+	return ""
 }
 
 type HeartbeatReq struct {
@@ -205,6 +205,286 @@ func (x *HeartbeatRes) GetIsAlive() bool {
 	return false
 }
 
+type RegisterReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WorkerID      string                 `protobuf:"bytes,1,opt,name=WorkerID,proto3" json:"WorkerID,omitempty"`
+	WorkerAddr    string                 `protobuf:"bytes,2,opt,name=WorkerAddr,proto3" json:"WorkerAddr,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterReq) Reset() {
+	*x = RegisterReq{}
+	mi := &file_proto_scheduler_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterReq) ProtoMessage() {}
+
+func (x *RegisterReq) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_scheduler_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterReq.ProtoReflect.Descriptor instead.
+func (*RegisterReq) Descriptor() ([]byte, []int) {
+	return file_proto_scheduler_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *RegisterReq) GetWorkerID() string {
+	if x != nil {
+		return x.WorkerID
+	}
+	return ""
+}
+
+func (x *RegisterReq) GetWorkerAddr() string {
+	if x != nil {
+		return x.WorkerAddr
+	}
+	return ""
+}
+
+type RegisterRes struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=Success,proto3" json:"Success,omitempty"`
+	Msg           string                 `protobuf:"bytes,2,opt,name=Msg,proto3" json:"Msg,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterRes) Reset() {
+	*x = RegisterRes{}
+	mi := &file_proto_scheduler_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterRes) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterRes) ProtoMessage() {}
+
+func (x *RegisterRes) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_scheduler_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterRes.ProtoReflect.Descriptor instead.
+func (*RegisterRes) Descriptor() ([]byte, []int) {
+	return file_proto_scheduler_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *RegisterRes) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *RegisterRes) GetMsg() string {
+	if x != nil {
+		return x.Msg
+	}
+	return ""
+}
+
+type ElectionReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SenderID      int32                  `protobuf:"varint,1,opt,name=SenderID,proto3" json:"SenderID,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ElectionReq) Reset() {
+	*x = ElectionReq{}
+	mi := &file_proto_scheduler_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ElectionReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ElectionReq) ProtoMessage() {}
+
+func (x *ElectionReq) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_scheduler_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ElectionReq.ProtoReflect.Descriptor instead.
+func (*ElectionReq) Descriptor() ([]byte, []int) {
+	return file_proto_scheduler_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ElectionReq) GetSenderID() int32 {
+	if x != nil {
+		return x.SenderID
+	}
+	return 0
+}
+
+type ElectionRes struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ok            bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ElectionRes) Reset() {
+	*x = ElectionRes{}
+	mi := &file_proto_scheduler_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ElectionRes) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ElectionRes) ProtoMessage() {}
+
+func (x *ElectionRes) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_scheduler_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ElectionRes.ProtoReflect.Descriptor instead.
+func (*ElectionRes) Descriptor() ([]byte, []int) {
+	return file_proto_scheduler_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ElectionRes) GetOk() bool {
+	if x != nil {
+		return x.Ok
+	}
+	return false
+}
+
+type LeaderReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	LeaderID      int32                  `protobuf:"varint,1,opt,name=LeaderID,proto3" json:"LeaderID,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LeaderReq) Reset() {
+	*x = LeaderReq{}
+	mi := &file_proto_scheduler_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LeaderReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LeaderReq) ProtoMessage() {}
+
+func (x *LeaderReq) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_scheduler_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LeaderReq.ProtoReflect.Descriptor instead.
+func (*LeaderReq) Descriptor() ([]byte, []int) {
+	return file_proto_scheduler_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *LeaderReq) GetLeaderID() int32 {
+	if x != nil {
+		return x.LeaderID
+	}
+	return 0
+}
+
+type LeaderRes struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ack           bool                   `protobuf:"varint,1,opt,name=Ack,proto3" json:"Ack,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LeaderRes) Reset() {
+	*x = LeaderRes{}
+	mi := &file_proto_scheduler_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LeaderRes) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LeaderRes) ProtoMessage() {}
+
+func (x *LeaderRes) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_scheduler_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LeaderRes.ProtoReflect.Descriptor instead.
+func (*LeaderRes) Descriptor() ([]byte, []int) {
+	return file_proto_scheduler_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *LeaderRes) GetAck() bool {
+	if x != nil {
+		return x.Ack
+	}
+	return false
+}
+
 var File_proto_scheduler_proto protoreflect.FileDescriptor
 
 const file_proto_scheduler_proto_rawDesc = "" +
@@ -214,18 +494,41 @@ const file_proto_scheduler_proto_rawDesc = "" +
 	"\x03Num\x18\x01 \x01(\x05R\x03Num\"J\n" +
 	"\bPrimeRes\x12\x1c\n" +
 	"\tPrimeList\x18\x01 \x03(\x05R\tPrimeList\x12 \n" +
-	"\vProcessedBy\x18\x02 \x01(\x05R\vProcessedBy\"*\n" +
+	"\vProcessedBy\x18\x02 \x01(\tR\vProcessedBy\"*\n" +
 	"\fHeartbeatReq\x12\x1a\n" +
 	"\bWorkerID\x18\x01 \x01(\x05R\bWorkerID\"(\n" +
 	"\fHeartbeatRes\x12\x18\n" +
-	"\aIsAlive\x18\x01 \x01(\bR\aIsAlive2/\n" +
+	"\aIsAlive\x18\x01 \x01(\bR\aIsAlive\"I\n" +
+	"\vRegisterReq\x12\x1a\n" +
+	"\bWorkerID\x18\x01 \x01(\tR\bWorkerID\x12\x1e\n" +
+	"\n" +
+	"WorkerAddr\x18\x02 \x01(\tR\n" +
+	"WorkerAddr\"9\n" +
+	"\vRegisterRes\x12\x18\n" +
+	"\aSuccess\x18\x01 \x01(\bR\aSuccess\x12\x10\n" +
+	"\x03Msg\x18\x02 \x01(\tR\x03Msg\")\n" +
+	"\vElectionReq\x12\x1a\n" +
+	"\bSenderID\x18\x01 \x01(\x05R\bSenderID\"\x1d\n" +
+	"\vElectionRes\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"'\n" +
+	"\tLeaderReq\x12\x1a\n" +
+	"\bLeaderID\x18\x01 \x01(\x05R\bLeaderID\"\x1d\n" +
+	"\tLeaderRes\x12\x10\n" +
+	"\x03Ack\x18\x01 \x01(\bR\x03Ack2/\n" +
 	"\tScheduler\x12\"\n" +
 	"\n" +
 	"ListPrimes\x12\t.PrimeReq\x1a\t.PrimeRes2W\n" +
 	"\x06Worker\x12\"\n" +
 	"\n" +
 	"ListPrimes\x12\t.PrimeReq\x1a\t.PrimeRes\x12)\n" +
-	"\tHeartbeat\x12\r.HeartbeatReq\x1a\r.HeartbeatResB\fZ\n" +
+	"\tHeartbeat\x12\r.HeartbeatReq\x1a\r.HeartbeatRes2>\n" +
+	"\x0eLeaderRegistry\x12,\n" +
+	"\x0eRegisterWorker\x12\f.RegisterReq\x1a\f.RegisterRes2a\n" +
+	"\bElection\x12+\n" +
+	"\rStartElection\x12\f.ElectionReq\x1a\f.ElectionRes\x12(\n" +
+	"\x0eAnnounceLeader\x12\n" +
+	".LeaderReq\x1a\n" +
+	".LeaderResB\fZ\n" +
 	"./proto;pbb\x06proto3"
 
 var (
@@ -240,22 +543,34 @@ func file_proto_scheduler_proto_rawDescGZIP() []byte {
 	return file_proto_scheduler_proto_rawDescData
 }
 
-var file_proto_scheduler_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_proto_scheduler_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_proto_scheduler_proto_goTypes = []any{
 	(*PrimeReq)(nil),     // 0: PrimeReq
 	(*PrimeRes)(nil),     // 1: PrimeRes
 	(*HeartbeatReq)(nil), // 2: HeartbeatReq
 	(*HeartbeatRes)(nil), // 3: HeartbeatRes
+	(*RegisterReq)(nil),  // 4: RegisterReq
+	(*RegisterRes)(nil),  // 5: RegisterRes
+	(*ElectionReq)(nil),  // 6: ElectionReq
+	(*ElectionRes)(nil),  // 7: ElectionRes
+	(*LeaderReq)(nil),    // 8: LeaderReq
+	(*LeaderRes)(nil),    // 9: LeaderRes
 }
 var file_proto_scheduler_proto_depIdxs = []int32{
 	0, // 0: Scheduler.ListPrimes:input_type -> PrimeReq
 	0, // 1: Worker.ListPrimes:input_type -> PrimeReq
 	2, // 2: Worker.Heartbeat:input_type -> HeartbeatReq
-	1, // 3: Scheduler.ListPrimes:output_type -> PrimeRes
-	1, // 4: Worker.ListPrimes:output_type -> PrimeRes
-	3, // 5: Worker.Heartbeat:output_type -> HeartbeatRes
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	4, // 3: LeaderRegistry.RegisterWorker:input_type -> RegisterReq
+	6, // 4: Election.StartElection:input_type -> ElectionReq
+	8, // 5: Election.AnnounceLeader:input_type -> LeaderReq
+	1, // 6: Scheduler.ListPrimes:output_type -> PrimeRes
+	1, // 7: Worker.ListPrimes:output_type -> PrimeRes
+	3, // 8: Worker.Heartbeat:output_type -> HeartbeatRes
+	5, // 9: LeaderRegistry.RegisterWorker:output_type -> RegisterRes
+	7, // 10: Election.StartElection:output_type -> ElectionRes
+	9, // 11: Election.AnnounceLeader:output_type -> LeaderRes
+	6, // [6:12] is the sub-list for method output_type
+	0, // [0:6] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -272,9 +587,9 @@ func file_proto_scheduler_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_scheduler_proto_rawDesc), len(file_proto_scheduler_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   10,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   4,
 		},
 		GoTypes:           file_proto_scheduler_proto_goTypes,
 		DependencyIndexes: file_proto_scheduler_proto_depIdxs,

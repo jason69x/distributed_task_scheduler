@@ -259,3 +259,245 @@ var Worker_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "proto/scheduler.proto",
 }
+
+const (
+	LeaderRegistry_RegisterWorker_FullMethodName = "/LeaderRegistry/RegisterWorker"
+)
+
+// LeaderRegistryClient is the client API for LeaderRegistry service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type LeaderRegistryClient interface {
+	RegisterWorker(ctx context.Context, in *RegisterReq, opts ...grpc.CallOption) (*RegisterRes, error)
+}
+
+type leaderRegistryClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewLeaderRegistryClient(cc grpc.ClientConnInterface) LeaderRegistryClient {
+	return &leaderRegistryClient{cc}
+}
+
+func (c *leaderRegistryClient) RegisterWorker(ctx context.Context, in *RegisterReq, opts ...grpc.CallOption) (*RegisterRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RegisterRes)
+	err := c.cc.Invoke(ctx, LeaderRegistry_RegisterWorker_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// LeaderRegistryServer is the server API for LeaderRegistry service.
+// All implementations must embed UnimplementedLeaderRegistryServer
+// for forward compatibility.
+type LeaderRegistryServer interface {
+	RegisterWorker(context.Context, *RegisterReq) (*RegisterRes, error)
+	mustEmbedUnimplementedLeaderRegistryServer()
+}
+
+// UnimplementedLeaderRegistryServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedLeaderRegistryServer struct{}
+
+func (UnimplementedLeaderRegistryServer) RegisterWorker(context.Context, *RegisterReq) (*RegisterRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterWorker not implemented")
+}
+func (UnimplementedLeaderRegistryServer) mustEmbedUnimplementedLeaderRegistryServer() {}
+func (UnimplementedLeaderRegistryServer) testEmbeddedByValue()                        {}
+
+// UnsafeLeaderRegistryServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to LeaderRegistryServer will
+// result in compilation errors.
+type UnsafeLeaderRegistryServer interface {
+	mustEmbedUnimplementedLeaderRegistryServer()
+}
+
+func RegisterLeaderRegistryServer(s grpc.ServiceRegistrar, srv LeaderRegistryServer) {
+	// If the following call pancis, it indicates UnimplementedLeaderRegistryServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&LeaderRegistry_ServiceDesc, srv)
+}
+
+func _LeaderRegistry_RegisterWorker_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LeaderRegistryServer).RegisterWorker(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LeaderRegistry_RegisterWorker_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LeaderRegistryServer).RegisterWorker(ctx, req.(*RegisterReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// LeaderRegistry_ServiceDesc is the grpc.ServiceDesc for LeaderRegistry service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var LeaderRegistry_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "LeaderRegistry",
+	HandlerType: (*LeaderRegistryServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "RegisterWorker",
+			Handler:    _LeaderRegistry_RegisterWorker_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "proto/scheduler.proto",
+}
+
+const (
+	Election_StartElection_FullMethodName  = "/Election/StartElection"
+	Election_AnnounceLeader_FullMethodName = "/Election/AnnounceLeader"
+)
+
+// ElectionClient is the client API for Election service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type ElectionClient interface {
+	StartElection(ctx context.Context, in *ElectionReq, opts ...grpc.CallOption) (*ElectionRes, error)
+	AnnounceLeader(ctx context.Context, in *LeaderReq, opts ...grpc.CallOption) (*LeaderRes, error)
+}
+
+type electionClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewElectionClient(cc grpc.ClientConnInterface) ElectionClient {
+	return &electionClient{cc}
+}
+
+func (c *electionClient) StartElection(ctx context.Context, in *ElectionReq, opts ...grpc.CallOption) (*ElectionRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ElectionRes)
+	err := c.cc.Invoke(ctx, Election_StartElection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *electionClient) AnnounceLeader(ctx context.Context, in *LeaderReq, opts ...grpc.CallOption) (*LeaderRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LeaderRes)
+	err := c.cc.Invoke(ctx, Election_AnnounceLeader_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ElectionServer is the server API for Election service.
+// All implementations must embed UnimplementedElectionServer
+// for forward compatibility.
+type ElectionServer interface {
+	StartElection(context.Context, *ElectionReq) (*ElectionRes, error)
+	AnnounceLeader(context.Context, *LeaderReq) (*LeaderRes, error)
+	mustEmbedUnimplementedElectionServer()
+}
+
+// UnimplementedElectionServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedElectionServer struct{}
+
+func (UnimplementedElectionServer) StartElection(context.Context, *ElectionReq) (*ElectionRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StartElection not implemented")
+}
+func (UnimplementedElectionServer) AnnounceLeader(context.Context, *LeaderReq) (*LeaderRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AnnounceLeader not implemented")
+}
+func (UnimplementedElectionServer) mustEmbedUnimplementedElectionServer() {}
+func (UnimplementedElectionServer) testEmbeddedByValue()                  {}
+
+// UnsafeElectionServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ElectionServer will
+// result in compilation errors.
+type UnsafeElectionServer interface {
+	mustEmbedUnimplementedElectionServer()
+}
+
+func RegisterElectionServer(s grpc.ServiceRegistrar, srv ElectionServer) {
+	// If the following call pancis, it indicates UnimplementedElectionServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&Election_ServiceDesc, srv)
+}
+
+func _Election_StartElection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ElectionReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ElectionServer).StartElection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Election_StartElection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ElectionServer).StartElection(ctx, req.(*ElectionReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Election_AnnounceLeader_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LeaderReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ElectionServer).AnnounceLeader(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Election_AnnounceLeader_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ElectionServer).AnnounceLeader(ctx, req.(*LeaderReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// Election_ServiceDesc is the grpc.ServiceDesc for Election service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Election_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "Election",
+	HandlerType: (*ElectionServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "StartElection",
+			Handler:    _Election_StartElection_Handler,
+		},
+		{
+			MethodName: "AnnounceLeader",
+			Handler:    _Election_AnnounceLeader_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "proto/scheduler.proto",
+}

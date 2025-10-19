@@ -13,7 +13,7 @@ message PrimeReq{
 
 message PrimeRes{
   repeated int32 PrimeList = 1;
-  int32 ProcessedBy = 2;
+  string ProcessedBy = 2;
 }
 
 // leader -> worker rpc calls
@@ -29,4 +29,43 @@ message HeartbeatReq{
 
 message HeartbeatRes{
   bool IsAlive = 1;
+}
+
+// worder -> leader
+
+service LeaderRegistry{
+  rpc RegisterWorker(RegisterReq) returns (RegisterRes);
+}
+
+message RegisterReq{
+  string WorkerID = 1;
+  string WorkerAddr = 2;
+}
+
+message RegisterRes{
+  bool Success = 1;
+  string Msg = 2;
+}
+
+//bully
+
+service Election{
+  rpc StartElection(ElectionReq) returns (ElectionRes);
+  rpc AnnounceLeader(LeaderReq) returns (LeaderRes);
+}
+
+message ElectionReq{
+  int32 SenderID = 1;
+}
+
+message ElectionRes{
+  bool ok = 1;
+}
+
+message LeaderReq{
+  int32 LeaderID = 1;
+}
+
+message LeaderRes{
+  bool Ack = 1;
 }

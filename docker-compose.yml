@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   leader:
     build:
@@ -9,6 +7,10 @@ services:
       - "50051:50051"
     networks:
       - scheduler-net
+    environment:
+      - NODE_ID=3 
+      - PEERS=1=worker1:50052,2=worker2:50053
+
 
   worker1:
     build:
@@ -17,6 +19,9 @@ services:
     environment:
       - WORKER_ID=worker1
       - PORT=50052
+      - LEADER_ADDR=leader:50051
+      - NODE_ID=1
+      - PEERS=2=worker2:50053,3=leader:50051
     networks:
       - scheduler-net
     depends_on:
@@ -28,21 +33,24 @@ services:
     environment:
       - WORKER_ID=worker2
       - PORT=50053
+      - LEADER_ADDR=leader:50051
+      - NODE_ID=2 
+      - PEERS=1=worker1:50052,3=leader:50051
     networks:
       - scheduler-net
     depends_on:
       - leader
-  worker3:
+
+  client:
     build:
       context: .
-      dockerfile: Dockerfile.worker
-    environment:
-      - WORKER_ID=worker3
-      - PORT=50054
+      dockerfile : Dockerfile.client
     networks:
       - scheduler-net
     depends_on:
       - leader
+    stdin_open: true
+    tty : true
 
 networks:
   scheduler-net:

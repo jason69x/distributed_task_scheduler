@@ -41,17 +41,6 @@ services:
     depends_on:
       - leader
 
-  client:
-    build:
-      context: .
-      dockerfile : Dockerfile.client
-    networks:
-      - scheduler-net
-    depends_on:
-      - leader
-    stdin_open: true
-    tty : true
-
 networks:
   scheduler-net:
     driver: bridge

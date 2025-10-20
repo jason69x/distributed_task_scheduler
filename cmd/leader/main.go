@@ -38,12 +38,40 @@ type LeaderServer struct{
 }
 
 func (s *LeaderServer) StartElection(ctx context.Context,req *pb.ElectionReq)(*pb.ElectionRes,error){
+	s.mu.RLock()
+	myID := s.nodeID
+	s.mu.RUnlock()
 		log.Printf("[Election] Received election req from node%v",req.SenderID)
-	if req.SenderID < s.nodeID{
-	log.Printf("[Election] My ID (%v) is higher",s.nodeID)
+	if req.SenderID < myID{
+	log.Printf("[Election] My ID (%v) is higher",myID)
+		go func(){
+			time.Sleep(500 * time.Millisecond)
+			s.announceLeadership()
+		}()
 	return &pb.ElectionRes{Ok: true},nil
 	}
 	return &pb.ElectionRes{Ok: false},nil 
+}
+
+func (s *LeaderServer) announceLeadership(){
+	s.mu.RLock()
+	peers := s.peers
+	myID := s.nodeID
+	s.mu.RUnlock()
+
+	for peerID,peerAddr := range peers{
+		conn, err := grpc.Dial(peerAddr,grpc.WithInsecure(),grpc.WithTimeout(2*time.Second))
+		if err != nil{
+			continue
+		} 
+		client := pb.NewElectionClient(conn)
+        ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+        client.AnnounceLeader(ctx, &pb.LeaderReq{LeaderID: myID})
+        cancel()
+        conn.Close()
+        
+        log.Printf("[Election] Re-announced leadership to Node%d", peerID)
+	}
 }
 
 func (s *LeaderServer) AnnounceLeader(ctx context.Context,req *pb.LeaderReq)(*pb.LeaderRes,error){

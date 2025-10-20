@@ -194,7 +194,7 @@ func (s *WorkerServer) checkLeaderHealth(){
 		}
 
 
-		conn,err := grpc.Dial(s.leaderAddr,grpc.WithInsecure(),grpc.WithTimeout(2*time.Second))
+		conn,err := grpc.Dial(leaderAddr,grpc.WithInsecure(),grpc.WithTimeout(2*time.Second))
 		if err != nil {
 			consecutiveFailures++
 			if consecutiveFailures>=2 {

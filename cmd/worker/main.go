@@ -26,9 +26,13 @@ type WorkerServer struct {
 	peers map[int32]string
 	isLeader bool
 	mu sync.RWMutex
+	currentLeaderID int32
+	inElection bool
 }
 
 func (s *WorkerServer) StartElection(ctx context.Context,req *pb.ElectionReq)(*pb.ElectionRes,error){
+	s.mu.RLock()
+	s.mu.RUnlock()
 	log.Printf("[Election] received election request from node %d",req.SenderID)
 
 	if req.SenderID < s.nodeID{
@@ -45,7 +49,9 @@ func (s *WorkerServer) AnnounceLeader(ctx context.Context,req *pb.LeaderReq)(*pb
 	defer s.mu.Unlock()
 
 	log.Printf("[Election] Node%v is the new leader",req.LeaderID)
+	s.currentLeaderID=req.LeaderID
 	s.isLeader = (req.LeaderID==s.nodeID)
+	s.inElection=false
 
 	if s.isLeader{
 		log.Printf("[Election] i am the new leader!,surrender you peasants hahaha")
@@ -55,6 +61,20 @@ func (s *WorkerServer) AnnounceLeader(ctx context.Context,req *pb.LeaderReq)(*pb
 
 
 func (s *WorkerServer) runElection(){
+	s.mu.Lock()
+	if s.inElection{
+		log.Printf("[Election] Already in election,skipping")
+		s.mu.Unlock()
+		return 
+	}
+	s.inElection=true
+	s.mu.Unlock()
+	defer func(){
+		s.mu.Lock()
+		s.inElection = false
+		s.mu.Unlock()
+		log.Printf("election complete")
+	}()
 	log.Printf("[Election] starting election (my Id : %d)",s.nodeID)
 
 	higherNodes := []int32{}
@@ -87,18 +107,31 @@ func (s *WorkerServer) runElection(){
 		if err == nil && resp.Ok{
 			anyResponse = true
 			log.Printf("[Election] Node%d responded",higherID)
-		}
+		} 
+		
 	}
 
 	if !anyResponse{
 		log.Printf("[Election] No responses. I win!")
 		s.becomeLeader()
-	}
+	} else {
+        log.Printf("[Election] Higher node(s) responded. Waiting for victor announcement...")
+        time.Sleep(3 * time.Second)
+        
+        s.mu.RLock()
+        stillWaiting := s.currentLeaderID == 0 || s.currentLeaderID == 3  // Still no new leader
+        s.mu.RUnlock()
+        
+        if stillWaiting {
+            log.Printf("[Election] No victory announcement received. Retrying election...")
+        }
+    }
 }
 
 func (s *WorkerServer) becomeLeader(){
 	s.mu.Lock()
 	s.isLeader = true
+	s.currentLeaderID=s.nodeID
 	s.mu.Unlock()
 
 	log.Printf("[Election] i am the leader")
@@ -119,25 +152,57 @@ func (s *WorkerServer) becomeLeader(){
 			log.Printf("[Election] Announced leadership to node%d",id)
 		}(peerID,peerAddr)
 	}
+	time.Sleep(1*time.Second)
 }
 
 func (s *WorkerServer) checkLeaderHealth(){
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
+	consecutiveFailures := 0
+
 	for range ticker.C{
 		s.mu.RLock()
 		isLeader := s.isLeader
+		currentLeaderID:= s.currentLeaderID
+		inElection := s.inElection
 		s.mu.RUnlock()
 
 		if isLeader{
+			consecutiveFailures=0
+			continue
+		}
+		if inElection{
+			continue
+		}
+		var leaderAddr string
+		if currentLeaderID==0 || currentLeaderID==3{
+			leaderAddr=s.leaderAddr
+		} else{
+			leaderAddr = s.peers[currentLeaderID]
+		}
+
+		if leaderAddr == ""{
+			consecutiveFailures++
+			if consecutiveFailures>=2{
+
+			log.Printf("[Monitor] No leader known, starting election")
+				consecutiveFailures=0
+			go s.runElection()
+			}
 			continue
 		}
 
+
 		conn,err := grpc.Dial(s.leaderAddr,grpc.WithInsecure(),grpc.WithTimeout(2*time.Second))
 		if err != nil {
-			log.Printf("[Monitor] Leader is dead! Starting Election...")
+			consecutiveFailures++
+			if consecutiveFailures>=2 {
+
+			log.Printf("[Monitor] Leader is %v dead! Starting Election...",currentLeaderID)
+				consecutiveFailures=0
 			go s.runElection()
+			}
 			continue
 		}
 
@@ -148,8 +213,16 @@ func (s *WorkerServer) checkLeaderHealth(){
 		conn.Close()
 
 		if err!= nil{
+			consecutiveFailures++
+			if consecutiveFailures>=2{
+
 			log.Printf("[Monitor] Leader is dead! Starting Election...")
+				consecutiveFailures=0
 			go s.runElection()
+			}
+		}else{
+			consecutiveFailures=0
+			log.Printf("[Monitor] Leader Node%v is alive",currentLeaderID)
 		}
 	}
 }
@@ -236,6 +309,8 @@ func main(){
 		nodeID: int32(nodeID),
 		peers: peers,
 		isLeader: false,
+		currentLeaderID: 3,
+		inElection: false,
 	}
 	go worker.checkLeaderHealth()
 	lis,err := net.Listen("tcp",":"+port)

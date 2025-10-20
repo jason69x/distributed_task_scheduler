@@ -32,6 +32,8 @@ type LeaderServer struct{
 	nodeID int32
 	peers map[int32]string
 	isLeader bool
+	currentLeaderID int32
+	inElection bool
 	mu sync.RWMutex
 }
 
@@ -49,7 +51,9 @@ func (s *LeaderServer) AnnounceLeader(ctx context.Context,req *pb.LeaderReq)(*pb
 	defer s.mu.Unlock()
 
 	log.Printf("[Election] Node%v is now leader",req.LeaderID)
+	s.currentLeaderID=req.LeaderID
 	s.isLeader = (req.LeaderID==s.nodeID)
+	s.inElection=false
 	return &pb.LeaderRes{Ack: true},nil
 }
 
@@ -200,6 +204,8 @@ func main(){
 		nodeID: int32(nodeID),
 		peers: peers,
 		isLeader: true,
+		currentLeaderID: int32(nodeID),
+		inElection: false,
 	}
 
 	go leader.monitorWorkers()

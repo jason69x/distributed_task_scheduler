@@ -17,6 +17,7 @@ import (
 type WorkerServer struct {
 	pb.UnimplementedWorkerServer
 	pb.UnimplementedElectionServer
+	pb.UnimplementedSchedulerServer
 
 	workerID string
 	nodeID   int32
@@ -299,6 +300,7 @@ func main() {
 
 	s := grpc.NewServer()
 	pb.RegisterWorkerServer(s, worker)
+	pb.RegisterSchedulerServer(s, worker)
 	pb.RegisterElectionServer(s, worker)
 
 	log.Printf("[Worker] %s listening on port %s (node ID: %d)", workerID, port, nodeID)

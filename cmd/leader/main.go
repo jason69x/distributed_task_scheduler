@@ -2,225 +2,288 @@ package main
 
 import (
 	"context"
+	"dist_scheduler/proto"
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
-	"os"
 	"time"
-
-	"dist_scheduler/proto"
 
 	"google.golang.org/grpc"
 )
 
-type WorkerInfo struct{
+type WorkerInfo struct {
 	Address string
-	LastHeartBeat time.Time
 	IsAlive bool
 }
-type LeaderServer struct{
+
+type LeaderServer struct {
 	pb.UnimplementedSchedulerServer
-	pb.UnimplementedLeaderRegistryServer
+	pb.UnimplementedWorkerServer
 	pb.UnimplementedElectionServer
+	pb.UnimplementedLeaderRegistryServer
+
 	workers map[string]*WorkerInfo
-	workerIndex int
-	workerMutex sync.RWMutex
+	workerMu sync.RWMutex
 
-	nodeID int32
-	peers map[int32]string
-	isLeader bool
+	nodeID          int32
+	peers           map[int32]string
 	currentLeaderID int32
-	inElection bool
-	mu sync.RWMutex
+	isLeader        bool
+	inElection      bool
+	mu              sync.RWMutex
 }
 
-func (s *LeaderServer) StartElection(ctx context.Context,req *pb.ElectionReq)(*pb.ElectionRes,error){
+// Heartbeat - workers call this to check if leader is alive
+func (s *LeaderServer) Heartbeat(ctx context.Context, req *pb.HeartbeatReq) (*pb.HeartbeatRes, error) {
+	return &pb.HeartbeatRes{IsAlive: true}, nil
+}
+
+// ListPrimes - delegate task to a worker
+func (s *LeaderServer) ListPrimes(ctx context.Context, req *pb.PrimeReq) (*pb.PrimeRes, error) {
+	s.workerMu.RLock()
+	aliveWorkers := []string{}
+	for _, info := range s.workers {
+		if info.IsAlive {
+			aliveWorkers = append(aliveWorkers, info.Address)
+		}
+	}
+	s.workerMu.RUnlock()
+
+	if len(aliveWorkers) == 0 {
+		return nil, fmt.Errorf("no alive workers available")
+	}
+
+	// Pick first alive worker (simple strategy)
+	workerAddr := aliveWorkers[0]
+	log.Printf("[Task] Assigning to worker: %s", workerAddr)
+
+	conn, err := grpc.Dial(workerAddr, grpc.WithInsecure(), grpc.WithTimeout(5*time.Second))
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	client := pb.NewWorkerClient(conn)
+	return client.ListPrimes(ctx, req)
+}
+
+// RegisterWorker - worker registers with leader
+func (s *LeaderServer) RegisterWorker(ctx context.Context, req *pb.RegisterReq) (*pb.RegisterRes, error) {
+	s.workerMu.Lock()
+	defer s.workerMu.Unlock()
+
+	if existing, exists := s.workers[req.WorkerID]; exists {
+		existing.IsAlive = true
+		log.Printf("[Register] Worker %s re-registered", req.WorkerID)
+	} else {
+		s.workers[req.WorkerID] = &WorkerInfo{
+			Address: req.WorkerAddr,
+			IsAlive: true,
+		}
+		log.Printf("[Register] New worker: %s at %s", req.WorkerID, req.WorkerAddr)
+	}
+
+	return &pb.RegisterRes{
+		Success: true,
+		Msg:     fmt.Sprintf("worker %s registered", req.WorkerID),
+	}, nil
+}
+
+// StartElection - Bully algorithm
+func (s *LeaderServer) StartElection(ctx context.Context, req *pb.ElectionReq) (*pb.ElectionRes, error) {
 	s.mu.RLock()
 	myID := s.nodeID
 	s.mu.RUnlock()
-		log.Printf("[Election] Received election req from node%v",req.SenderID)
-	if req.SenderID < myID{
-	log.Printf("[Election] My ID (%v) is higher",myID)
-		go func(){
-			time.Sleep(500 * time.Millisecond)
-			s.announceLeadership()
-		}()
-	return &pb.ElectionRes{Ok: true},nil
+
+	log.Printf("[Election] Received election from node %d", req.SenderID)
+
+	if req.SenderID < myID {
+		log.Printf("[Election] My ID (%d) > %d, I take over", myID, req.SenderID)
+		go s.runElection()
+		return &pb.ElectionRes{Ok: true}, nil
 	}
-	return &pb.ElectionRes{Ok: false},nil 
+
+	return &pb.ElectionRes{Ok: false}, nil
 }
 
-func (s *LeaderServer) announceLeadership(){
-	s.mu.RLock()
-	peers := s.peers
-	myID := s.nodeID
-	s.mu.RUnlock()
-
-	for peerID,peerAddr := range peers{
-		conn, err := grpc.Dial(peerAddr,grpc.WithInsecure(),grpc.WithTimeout(2*time.Second))
-		if err != nil{
-			continue
-		} 
-		client := pb.NewElectionClient(conn)
-        ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-        client.AnnounceLeader(ctx, &pb.LeaderReq{LeaderID: myID})
-        cancel()
-        conn.Close()
-        
-        log.Printf("[Election] Re-announced leadership to Node%d", peerID)
-	}
-}
-
-func (s *LeaderServer) AnnounceLeader(ctx context.Context,req *pb.LeaderReq)(*pb.LeaderRes,error){
+// AnnounceLeader - accept new leader
+func (s *LeaderServer) AnnounceLeader(ctx context.Context, req *pb.LeaderReq) (*pb.LeaderRes, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	log.Printf("[Election] Node%v is now leader",req.LeaderID)
-	s.currentLeaderID=req.LeaderID
-	s.isLeader = (req.LeaderID==s.nodeID)
-	s.inElection=false
-	return &pb.LeaderRes{Ack: true},nil
+	log.Printf("[Election] Node %d is the new leader", req.LeaderID)
+	s.currentLeaderID = req.LeaderID
+	s.isLeader = (req.LeaderID == s.nodeID)
+	s.inElection = false
+
+	if s.isLeader {
+		log.Printf("[Election] *** I AM THE NEW LEADER ***")
+	}
+
+	return &pb.LeaderRes{Ack: true}, nil
 }
 
-func (s *LeaderServer) ListPrimes(ctx context.Context,req *pb.PrimeReq) (*pb.PrimeRes,error){
-	aliveWorkers := s.getAliveWorkers()
-
-	if len(aliveWorkers)==0{
-		return nil,fmt.Errorf("no alive workers available")
+// runElection - Bully algorithm
+func (s *LeaderServer) runElection() {
+	s.mu.Lock()
+	if s.inElection {
+		s.mu.Unlock()
+		return
 	}
-	s.workerMutex.Lock()
-	workerAddr := aliveWorkers[s.workerIndex%len(aliveWorkers)]
-	s.workerIndex++
-	s.workerMutex.Unlock()
+	s.inElection = true
+	s.mu.Unlock()
 
-	log.Printf("assigning task to %v",workerAddr)
+	defer func() {
+		s.mu.Lock()
+		s.inElection = false
+		s.mu.Unlock()
+	}()
 
-	conn,err := grpc.Dial(workerAddr,grpc.WithInsecure())
-	if err!=nil{
-		return nil,err
-	}
-	defer conn.Close()
+	log.Printf("[Election] Starting election (my ID: %d)", s.nodeID)
 
-	client := pb.NewWorkerClient(conn)
-	return client.ListPrimes(ctx,req)
-}
-
-func (s *LeaderServer) RegisterWorker(ctx context.Context, req *pb.RegisterReq) (*pb.RegisterRes,error){
-	s.workerMutex.Lock()
-	defer s.workerMutex.Unlock()
-
-	if existingWorker, exists := s.workers[req.WorkerID];exists{
-		if existingWorker.IsAlive{
-			log.Printf("worker %s already registered and alive",req.WorkerID)
-		} else{
-			log.Printf("worker %s re-joining",req.WorkerID)
-			existingWorker.IsAlive= true;
-			existingWorker.LastHeartBeat = time.Now()
-		}
-	}else{
-		log.Printf("New worker registered: %s at %s", req.WorkerID, req.WorkerAddr)
-		s.workers[req.WorkerID] = &WorkerInfo{
-			Address: req.WorkerAddr,
-			LastHeartBeat: time.Now(),
-			IsAlive: true,
+	// Find all nodes with higher ID
+	higherNodes := []int32{}
+	s.mu.RLock()
+	for peerID := range s.peers {
+		if peerID > s.nodeID {
+			higherNodes = append(higherNodes, peerID)
 		}
 	}
-	return &pb.RegisterRes{
-		Success: true,
-		Msg: fmt.Sprintf("worker %s registered successfully",req.WorkerID),
-	},nil
+	s.mu.RUnlock()
+
+	// If no higher nodes, I win
+	if len(higherNodes) == 0 {
+		log.Printf("[Election] No higher nodes - I WIN!")
+		s.becomeLeader()
+		return
+	}
+
+	// Send election to all higher nodes
+	anyResponded := false
+	for _, higherID := range higherNodes {
+		s.mu.RLock()
+		peerAddr := s.peers[higherID]
+		s.mu.RUnlock()
+
+		if peerAddr == "" {
+			continue
+		}
+
+		conn, err := grpc.Dial(peerAddr, grpc.WithInsecure(), grpc.WithTimeout(2*time.Second))
+		if err != nil {
+			continue
+		}
+
+		client := pb.NewElectionClient(conn)
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		resp, err := client.StartElection(ctx, &pb.ElectionReq{SenderID: s.nodeID})
+		cancel()
+		conn.Close()
+
+		if err == nil && resp.Ok {
+			anyResponded = true
+			log.Printf("[Election] Node %d responded", higherID)
+			break
+		}
+	}
+
+	// If no one responded, I win
+	if !anyResponded {
+		log.Printf("[Election] No responses - I WIN!")
+		s.becomeLeader()
+	} else {
+		log.Printf("[Election] Higher node responded, waiting for announcement...")
+	}
 }
 
-func (s *LeaderServer) monitorWorkers(){
+// becomeLeader - announce myself as leader to all peers
+func (s *LeaderServer) becomeLeader() {
+	s.mu.Lock()
+	s.isLeader = true
+	s.currentLeaderID = s.nodeID
+	s.mu.Unlock()
+
+	log.Printf("[Election] I am the leader!")
+
+	// Announce to all peers
+	s.mu.RLock()
+	peers := s.peers
+	s.mu.RUnlock()
+
+	for peerID, peerAddr := range peers {
+		go func(id int32, addr string) {
+			conn, err := grpc.Dial(addr, grpc.WithInsecure(), grpc.WithTimeout(2*time.Second))
+			if err != nil {
+				return
+			}
+			defer conn.Close()
+
+			client := pb.NewElectionClient(conn)
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			client.AnnounceLeader(ctx, &pb.LeaderReq{LeaderID: s.nodeID})
+			cancel()
+			log.Printf("[Election] Announced leadership to node %d", id)
+		}(peerID, peerAddr)
+	}
+}
+
+// monitorWorkers - health check workers
+func (s *LeaderServer) monitorWorkers() {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
-	for range ticker.C{
-		s.workerMutex.Lock()
+	for range ticker.C {
+		s.workerMu.Lock()
+		for workerID, info := range s.workers {
+			conn, err := grpc.Dial(info.Address, grpc.WithInsecure(), grpc.WithTimeout(2*time.Second))
+			if err != nil {
+				info.IsAlive = false
+				log.Printf("[Monitor] Worker %s DEAD", workerID)
+				continue
+			}
 
-		log.Println("=== health check ===")
-		aliveCount := 0
-		deadCount := 0
+			client := pb.NewWorkerClient(conn)
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			_, err = client.Heartbeat(ctx, &pb.HeartbeatReq{})
+			cancel()
+			conn.Close()
 
-		for workerID,workerInfo := range s.workers{
-			IsAlive := s.checkWorkerHealth(workerInfo.Address)
-
-			if IsAlive{
-				workerInfo.LastHeartBeat = time.Now()
-
-				if !workerInfo.IsAlive{
-					log.Printf("worker %s RECOVERED",workerID)
-				}
-				workerInfo.IsAlive =true
-				aliveCount++
-			} else{
-				if workerInfo.IsAlive{
-					log.Printf("workder %s DIED",workerID)
-				}
-				workerInfo.IsAlive= false
-				deadCount++
+			if err != nil {
+				info.IsAlive = false
+				log.Printf("[Monitor] Worker %s heartbeat FAILED", workerID)
+			} else {
+				info.IsAlive = true
+				log.Printf("[Monitor] Worker %s alive", workerID)
 			}
 		}
-		log.Printf("workers : %v alive, %v dead , %v total",aliveCount,deadCount,len(s.workers))
-		s.workerMutex.Unlock()
-	}
-}
 
-func (s *LeaderServer) checkWorkerHealth(workerAddr string) bool{
-	conn,err := grpc.Dial(workerAddr,grpc.WithInsecure(),grpc.WithBlock(),grpc.WithTimeout(2*time.Second))
-	if err != nil{
-		return false
-	}
-	defer conn.Close()
-
-	client := pb.NewWorkerClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(),2*time.Second)
-	defer cancel()
-
-	_,err  = client.Heartbeat(ctx,&pb.HeartbeatReq{})
-	return err==nil
-}
-
-func (s *LeaderServer) getAliveWorkers() []string{
-	s.workerMutex.RLock()
-	defer s.workerMutex.RUnlock()
-
-	aliveWorkers := []string{}
-	for workerID,workerInfo := range s.workers{
-		if workerInfo.IsAlive{
-			aliveWorkers = append(aliveWorkers, workerInfo.Address)
-			log.Printf("  - %s : ALIVE",workerID)
+		alive := 0
+		for _, info := range s.workers {
+			if info.IsAlive {
+				alive++
+			}
 		}
-	}
-	return aliveWorkers
-}
-
-func (s *LeaderServer) markWorkerDead(workerAddr string){
-	s.workerMutex.Lock()
-	defer s.workerMutex.Unlock()
-
-	for workerID,WorkerInfo := range s.workers{
-		if WorkerInfo.Address == workerAddr{
-			WorkerInfo.IsAlive = false
-			log.Printf("Marked %s as DEAD",workerID)
-		}
+		log.Printf("[Monitor] Workers: %d alive, %d total", alive, len(s.workers))
+		s.workerMu.Unlock()
 	}
 }
 
-func main(){
-
-	nodeIdStr := os.Getenv("NODE_ID")
+func main() {
+	nodeIDStr := os.Getenv("NODE_ID")
 	peersStr := os.Getenv("PEERS")
-	nodeID,_ := strconv.Atoi(nodeIdStr)
 
+	nodeID, _ := strconv.Atoi(nodeIDStr)
+
+	// Parse peers: "1=worker1:50052,2=worker2:50053"
 	peers := make(map[int32]string)
-	if peersStr != ""{
-		for _,peer := range strings.Split(peersStr,","){
-			parts := strings.Split(peer,"=")
-			if len(parts) == 2{
+	if peersStr != "" {
+		for _, peer := range strings.Split(peersStr, ",") {
+			parts := strings.Split(peer, "=")
+			if len(parts) == 2 {
 				id, _ := strconv.Atoi(parts[0])
 				peers[int32(id)] = parts[1]
 			}
@@ -228,30 +291,31 @@ func main(){
 	}
 
 	leader := &LeaderServer{
-		workers : make(map[string]*WorkerInfo),
-		nodeID: int32(nodeID),
-		peers: peers,
-		isLeader: true,
+		workers:         make(map[string]*WorkerInfo),
+		nodeID:          int32(nodeID),
+		peers:           peers,
 		currentLeaderID: int32(nodeID),
-		inElection: false,
+		isLeader:        true,
+		inElection:      false,
 	}
 
+	// Start worker health monitoring
 	go leader.monitorWorkers()
 
-	lis,err := net.Listen("tcp",":50051")
-	if err != nil{
-		log.Fatalf("failed to listen : %v",err)
+	// Start gRPC server
+	lis, err := net.Listen("tcp", ":50051")
+	if err != nil {
+		log.Fatalf("Failed to listen: %v", err)
 	}
 
 	s := grpc.NewServer()
-	pb.RegisterSchedulerServer(s,leader)
-	pb.RegisterLeaderRegistryServer(s,leader)
-	pb.RegisterElectionServer(s,leader)
+	pb.RegisterSchedulerServer(s, leader)
+	pb.RegisterElectionServer(s, leader)
+	pb.RegisterLeaderRegistryServer(s, leader)
 
-	log.Println("Leader listening on port 50051")
-	log.Println("waiting for workers to register...")
+	log.Printf("[Leader] Node %d listening on port 50051", nodeID)
 
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("Failed to serve : %v",err)
+		log.Fatalf("Failed to serve: %v", err)
 	}
 }

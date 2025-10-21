@@ -25,6 +25,8 @@ const (
 // SchedulerClient is the client API for Scheduler service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// Client submits task to leader
 type SchedulerClient interface {
 	ListPrimes(ctx context.Context, in *PrimeReq, opts ...grpc.CallOption) (*PrimeRes, error)
 }
@@ -50,6 +52,8 @@ func (c *schedulerClient) ListPrimes(ctx context.Context, in *PrimeReq, opts ...
 // SchedulerServer is the server API for Scheduler service.
 // All implementations must embed UnimplementedSchedulerServer
 // for forward compatibility.
+//
+// Client submits task to leader
 type SchedulerServer interface {
 	ListPrimes(context.Context, *PrimeReq) (*PrimeRes, error)
 	mustEmbedUnimplementedSchedulerServer()
@@ -128,6 +132,8 @@ const (
 // WorkerClient is the client API for Worker service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// Leader pings workers to check alive
 type WorkerClient interface {
 	ListPrimes(ctx context.Context, in *PrimeReq, opts ...grpc.CallOption) (*PrimeRes, error)
 	Heartbeat(ctx context.Context, in *HeartbeatReq, opts ...grpc.CallOption) (*HeartbeatRes, error)
@@ -164,6 +170,8 @@ func (c *workerClient) Heartbeat(ctx context.Context, in *HeartbeatReq, opts ...
 // WorkerServer is the server API for Worker service.
 // All implementations must embed UnimplementedWorkerServer
 // for forward compatibility.
+//
+// Leader pings workers to check alive
 type WorkerServer interface {
 	ListPrimes(context.Context, *PrimeReq) (*PrimeRes, error)
 	Heartbeat(context.Context, *HeartbeatReq) (*HeartbeatRes, error)
@@ -267,6 +275,8 @@ const (
 // LeaderRegistryClient is the client API for LeaderRegistry service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// Worker registers with leader
 type LeaderRegistryClient interface {
 	RegisterWorker(ctx context.Context, in *RegisterReq, opts ...grpc.CallOption) (*RegisterRes, error)
 }
@@ -292,6 +302,8 @@ func (c *leaderRegistryClient) RegisterWorker(ctx context.Context, in *RegisterR
 // LeaderRegistryServer is the server API for LeaderRegistry service.
 // All implementations must embed UnimplementedLeaderRegistryServer
 // for forward compatibility.
+//
+// Worker registers with leader
 type LeaderRegistryServer interface {
 	RegisterWorker(context.Context, *RegisterReq) (*RegisterRes, error)
 	mustEmbedUnimplementedLeaderRegistryServer()
@@ -370,6 +382,8 @@ const (
 // ElectionClient is the client API for Election service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// Leader election (Bully algorithm)
 type ElectionClient interface {
 	StartElection(ctx context.Context, in *ElectionReq, opts ...grpc.CallOption) (*ElectionRes, error)
 	AnnounceLeader(ctx context.Context, in *LeaderReq, opts ...grpc.CallOption) (*LeaderRes, error)
@@ -406,6 +420,8 @@ func (c *electionClient) AnnounceLeader(ctx context.Context, in *LeaderReq, opts
 // ElectionServer is the server API for Election service.
 // All implementations must embed UnimplementedElectionServer
 // for forward compatibility.
+//
+// Leader election (Bully algorithm)
 type ElectionServer interface {
 	StartElection(context.Context, *ElectionReq) (*ElectionRes, error)
 	AnnounceLeader(context.Context, *LeaderReq) (*LeaderRes, error)

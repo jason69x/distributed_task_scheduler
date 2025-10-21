@@ -119,7 +119,6 @@ func (x *PrimeRes) GetProcessedBy() string {
 
 type HeartbeatReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	WorkerID      int32                  `protobuf:"varint,1,opt,name=WorkerID,proto3" json:"WorkerID,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -152,13 +151,6 @@ func (x *HeartbeatReq) ProtoReflect() protoreflect.Message {
 // Deprecated: Use HeartbeatReq.ProtoReflect.Descriptor instead.
 func (*HeartbeatReq) Descriptor() ([]byte, []int) {
 	return file_proto_scheduler_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *HeartbeatReq) GetWorkerID() int32 {
-	if x != nil {
-		return x.WorkerID
-	}
-	return 0
 }
 
 type HeartbeatRes struct {
@@ -355,7 +347,7 @@ func (x *ElectionReq) GetSenderID() int32 {
 
 type ElectionRes struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	Ok            bool                   `protobuf:"varint,1,opt,name=Ok,proto3" json:"Ok,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -494,9 +486,8 @@ const file_proto_scheduler_proto_rawDesc = "" +
 	"\x03Num\x18\x01 \x01(\x05R\x03Num\"J\n" +
 	"\bPrimeRes\x12\x1c\n" +
 	"\tPrimeList\x18\x01 \x03(\x05R\tPrimeList\x12 \n" +
-	"\vProcessedBy\x18\x02 \x01(\tR\vProcessedBy\"*\n" +
-	"\fHeartbeatReq\x12\x1a\n" +
-	"\bWorkerID\x18\x01 \x01(\x05R\bWorkerID\"(\n" +
+	"\vProcessedBy\x18\x02 \x01(\tR\vProcessedBy\"\x0e\n" +
+	"\fHeartbeatReq\"(\n" +
 	"\fHeartbeatRes\x12\x18\n" +
 	"\aIsAlive\x18\x01 \x01(\bR\aIsAlive\"I\n" +
 	"\vRegisterReq\x12\x1a\n" +
@@ -510,7 +501,7 @@ const file_proto_scheduler_proto_rawDesc = "" +
 	"\vElectionReq\x12\x1a\n" +
 	"\bSenderID\x18\x01 \x01(\x05R\bSenderID\"\x1d\n" +
 	"\vElectionRes\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok\"'\n" +
+	"\x02Ok\x18\x01 \x01(\bR\x02Ok\"'\n" +
 	"\tLeaderReq\x12\x1a\n" +
 	"\bLeaderID\x18\x01 \x01(\x05R\bLeaderID\"\x1d\n" +
 	"\tLeaderRes\x12\x10\n" +

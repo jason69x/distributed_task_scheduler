@@ -1,71 +1,66 @@
 syntax = "proto3";
 option go_package = "./proto;pb";
 
-// client -> leader rpc calls
-
-service Scheduler{
+// Client submits task to leader
+service Scheduler {
   rpc ListPrimes(PrimeReq) returns (PrimeRes);
 }
 
-message PrimeReq{
+message PrimeReq {
   int32 Num = 1;
-} 
+}
 
-message PrimeRes{
+message PrimeRes {
   repeated int32 PrimeList = 1;
   string ProcessedBy = 2;
 }
 
-// leader -> worker rpc calls
-
-service Worker{
+// Leader pings workers to check alive
+service Worker {
   rpc ListPrimes(PrimeReq) returns (PrimeRes);
   rpc Heartbeat(HeartbeatReq) returns (HeartbeatRes);
 }
 
-message HeartbeatReq{
-  int32 WorkerID  = 1;
+message HeartbeatReq {
 }
 
-message HeartbeatRes{
+message HeartbeatRes {
   bool IsAlive = 1;
 }
 
-// worder -> leader
-
-service LeaderRegistry{
+// Worker registers with leader
+service LeaderRegistry {
   rpc RegisterWorker(RegisterReq) returns (RegisterRes);
 }
 
-message RegisterReq{
+message RegisterReq {
   string WorkerID = 1;
   string WorkerAddr = 2;
 }
 
-message RegisterRes{
+message RegisterRes {
   bool Success = 1;
   string Msg = 2;
 }
 
-//bully
-
-service Election{
+// Leader election (Bully algorithm)
+service Election {
   rpc StartElection(ElectionReq) returns (ElectionRes);
   rpc AnnounceLeader(LeaderReq) returns (LeaderRes);
 }
 
-message ElectionReq{
+message ElectionReq {
   int32 SenderID = 1;
 }
 
-message ElectionRes{
-  bool ok = 1;
+message ElectionRes {
+  bool Ok = 1;
 }
 
-message LeaderReq{
+message LeaderReq {
   int32 LeaderID = 1;
 }
 
-message LeaderRes{
+message LeaderRes {
   bool Ack = 1;
 }
